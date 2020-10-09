@@ -3,8 +3,7 @@ import tensorflow_addons as tfa
 
 
 def WeightNormConv1D(*args, **kwargs):
-    # return tfa.layers.WeightNormalization(tf.keras.layers.Conv1D(*args, **kwargs))
-    return tf.keras.layers.Conv1D(*args, **kwargs)
+    return tfa.layers.WeightNormalization(tf.keras.layers.Conv1D(*args, **kwargs))
 
 
 class ResidualConv1DGLU(tf.keras.Model):

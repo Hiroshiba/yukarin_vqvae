@@ -1,5 +1,4 @@
 import tensorflow as tf
-
 from yukarin_vqvae.config import NetworkConfig
 from yukarin_vqvae.networks.decoder import Decoder
 from yukarin_vqvae.networks.encoder import Encoder
@@ -48,6 +47,7 @@ def create_predictor(config: NetworkConfig, quantizer_ema_decay: float):
         scaling_hidden_size=config.scaling_hidden_size,
         residual_layer_num=config.residual_layer_num,
         residual_hidden_size=config.residual_hidden_size,
+        vocoder_type=config.vocoder_type,
         vocoder_hidden_size=config.vocoder_hidden_size,
         bin_size=config.bin_size,
         speaker_size=config.speaker_size,

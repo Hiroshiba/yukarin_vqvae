@@ -1,8 +1,14 @@
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, Optional
 
 from yukarin_vqvae.utility import dataclass_utility
 from yukarin_vqvae.utility.git_utility import get_branch_name, get_commit_id
+
+
+class VocoderType(str, Enum):
+    wavenet = "wavenet"
+    wavernn = "wavernn"
 
 
 @dataclass
@@ -23,6 +29,7 @@ class NetworkConfig:
     residual_hidden_size: int
     quantizer_embedding_num: int
     quantizer_embedding_size: int
+    vocoder_type: VocoderType
     vocoder_hidden_size: int
     bin_size: int
     speaker_size: int

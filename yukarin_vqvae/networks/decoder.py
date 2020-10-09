@@ -1,6 +1,8 @@
 import tensorflow as tf
+from yukarin_vqvae.config import VocoderType
 from yukarin_vqvae.networks.residual import ResidualBlock
 from yukarin_vqvae.networks.wavenet import WaveNet
+from yukarin_vqvae.networks.wavernn import WaveRNN
 
 
 class Decoder(tf.keras.Model):
@@ -10,6 +12,7 @@ class Decoder(tf.keras.Model):
         scaling_hidden_size: int,
         residual_layer_num: int,
         residual_hidden_size: int,
+        vocoder_type: VocoderType,
         vocoder_hidden_size: int,
         bin_size: int,
         speaker_size: int,
@@ -48,13 +51,12 @@ class Decoder(tf.keras.Model):
             ]
         )
 
-        # self.wave_concat = tf.keras.layers.Concatenate()
-        # self.lstm = tf.keras.layers.LSTM(
-        #     vocoder_hidden_size, return_sequences=True, return_state=True,
-        # )
-        # self.linear1 = tf.keras.layers.Dense(vocoder_hidden_size, activation="relu")
-        # self.linear2 = tf.keras.layers.Dense(bin_size)
-        self.vocoder = WaveNet(hidden_size=vocoder_hidden_size, bin_size=bin_size)
+        if vocoder_type == VocoderType.wavenet:
+            self.vocoder = WaveNet(hidden_size=vocoder_hidden_size, bin_size=bin_size)
+        elif vocoder_type == VocoderType.wavernn:
+            self.vocoder = WaveRNN(hidden_size=vocoder_hidden_size, bin_size=bin_size)
+        else:
+            raise ValueError(vocoder_type)
 
     def call(self, quantized, wave, speaker_id):
         s = self.embedding(speaker_id)
@@ -66,9 +68,5 @@ class Decoder(tf.keras.Model):
         h = self.blocks(h)
         h = self.convs(h)
 
-        # h = self.wave_concat([h, wave])
-        # h, _, _ = self.lstm(h)
-        # h = self.linear1(h)
-        # h = self.linear2(h)
         h = self.vocoder(x=wave, c=h)
         return h
