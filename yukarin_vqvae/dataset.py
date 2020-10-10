@@ -7,6 +7,8 @@ from typing import Any, Dict, List
 import numpy
 import tensorflow as tf
 import tensorflow_io as tfio
+import yaml
+from tqdm import tqdm
 
 from yukarin_vqvae.config import DatasetConfig
 
@@ -152,9 +154,20 @@ def create_record(
     min_sound_length: int,
     speaker_dict_path: str,
     speaker_size: int,
-    output_path: Path,
+    output_directory: str,
+    filename_format: str,
+    samples_par_file: int,
     seed: int = None,
+    processes: int = None,
 ):
+    Path(output_directory).mkdir(parents=True, exist_ok=True)
+    yaml.safe_dump(
+        locals(), Path(output_directory).joinpath("arguments.yaml").open(mode="w")
+    )
+
+    if processes is None:
+        processes = tf.data.experimental.AUTOTUNE
+
     wave_paths = {Path(p).stem: Path(p) for p in glob(str(wave_glob))}
     names = sorted(wave_paths.keys())
     assert len(names) > 0
@@ -179,13 +192,13 @@ def create_record(
         .map(partial(load_audio, sampling_rate=sampling_rate))
         .map(
             partial(encode_mulaw_wrapper, num=bin_size),
-            num_parallel_calls=tf.data.experimental.AUTOTUNE,
+            num_parallel_calls=processes,
         )
     )
 
     sound_dataset = (
         tf.data.Dataset.from_tensor_slices([str(silence_paths[name]) for name in names])
-        .map(load_numpy_file_wrapper, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        .map(load_numpy_file_wrapper, num_parallel_calls=processes)
         .map(
             partial(
                 process_silence,
@@ -193,7 +206,7 @@ def create_record(
                 sampling_length=sampling_length,
                 min_sound_length=min_sound_length,
             ),
-            num_parallel_calls=tf.data.experimental.AUTOTUNE,
+            num_parallel_calls=processes,
         )
     )
 
@@ -204,10 +217,20 @@ def create_record(
     array_dataset = tf.data.Dataset.zip((mulaw_dataset, sound_dataset, speaker_dataset))
     serialized_dataset = array_dataset.map(serialize_wrapper)
 
-    writer = tf.data.experimental.TFRecordWriter(
-        str(output_path), compression_type="GZIP"
-    )
-    writer.write(serialized_dataset)
+    for i_file in tqdm(
+        range(int(numpy.ceil(len(names) / samples_par_file))), desc="create_record"
+    ):
+        i_data = i_file * samples_par_file
+        filename = str(filename_format).format(i_data=i_data, i_file=i_file)
+        writer = tf.data.experimental.TFRecordWriter(
+            str(Path(output_directory).joinpath(filename)),
+            compression_type="GZIP",
+        )
+        writer.write(
+            serialized_dataset.skip(i_data)
+            .take(samples_par_file)
+            .prefetch(samples_par_file)
+        )
 
 
 def create_dataset(config: DatasetConfig, on_memory: bool = False):

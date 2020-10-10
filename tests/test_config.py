@@ -17,9 +17,6 @@ def test_from_dict(train_config_path: Path):
     with train_config_path.open() as f:
         d = yaml.load(f, SafeLoader)
     c = Config.from_dict(d)
-    import code
-
-    code.interact(local=locals())
 
 
 def test_to_dict(train_config_path: Path):

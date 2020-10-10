@@ -1,5 +1,6 @@
 pyyaml
 pytest
-tensorflow
+tensorflow-gpu==2.3.1
 tensorflow-addons
 tensorflow-io
+tqdm

@@ -3,7 +3,10 @@ import tensorflow as tf
 
 class Quantizer(tf.keras.Model):
     def __init__(
-        self, embedding_num: int, embedding_size: int, ema_decay: float,
+        self,
+        embedding_num: int,
+        embedding_size: int,
+        ema_decay: float,
     ):
         super().__init__()
         self.embedding_num = embedding_num
@@ -88,4 +91,6 @@ class Quantizer(tf.keras.Model):
         encoding_index = tf.reshape(encoding_index, tf.shape(x)[:-1])
 
         quantized = tf.nn.embedding_lookup(self.embedding, encoding_index)
+        if is_training:
+            quantized = x + tf.stop_gradient(quantized - x)
         return quantized
